@@ -17,7 +17,8 @@
 
 --verbose:是否在shell中传入verbose参数(是否输入过程日志)
 
-``` if (!args.verbose) {
+```js 
+if (!args.verbose) {
     compiler.plugin('done', (stats) => {
       stats.stats.forEach((stat) => {
         stat.compilation.children = stat.compilation.children.filter((child) => {
