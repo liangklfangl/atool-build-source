@@ -1,7 +1,12 @@
 ### 1.atool-build的简单说明
- 该脚手架只是对webpack进行了简单的封装。
 
- 首先,webpack/babel/TypeScript那些基本配置信息都有了默认信息，并内置了很多默认的`loader`来处理文件;然后,他是自己调用`compiler.run`方法开始编译的，并通过compiler.watch来监听文件的变化，生产build-bundle.json表示编译的信息；然后，里面通过一个hack来解决extract-webpack-text-plugin打印log的问题;Babel的缓存目录会使用操作系统默认的缓存目录来完成，使用os模块的tmpdir方法；其中devtool采用的是如下的方式加载:
+说明：atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，所以我还是强烈建议更新到webpack2的。废话不多说，请看下面内容：
+
+ atool-build简介:
+
+ atool-build脚手架只是对webpack进行了简单的封装。
+
+首先,webpack/babel/TypeScript那些基本配置信息都有了默认信息，并内置了很多默认的`loader`来处理文件;然后,他是自己调用`compiler.run`方法开始编译的，并通过compiler.watch来监听文件的变化，生产[build-bundle.json](https://github.com/liangklfangl/commonchunkplugin-source-code)表示编译的信息；然后，里面通过一个hack来解决extract-webpack-text-plugin打印log的问题;Babel的缓存目录会使用操作系统默认的缓存目录来完成，使用os模块的tmpdir方法；其中devtool采用的是如下的方式加载:
 
  ```js
  webpack --devtool source-map
@@ -29,9 +34,10 @@ if (!args.verbose) {
   }
 ```
 
-如果没有传入verbose，那么表示不允许输出日志。至于为什么是移除'extract-text-webpack-plugin'可以参见这个[hach](https://github.com/webpack/extract-text-webpack-plugin/issues/35)
+如果没有传入verbose，那么表示不允许输出日志。至于为什么是移除'extract-text-webpack-plugin'可以参见这个[hack](https://github.com/webpack/extract-text-webpack-plugin/issues/35)
 
 --json <filename>是否生成bundle.json文件
+
 ```js
 if (args.json) {
       const filename = typeof args.json === 'boolean' ? 'build-bundle.json' : args.json;
@@ -55,15 +61,18 @@ if (args.json) {
 -w, --watch [delpay] 是否监控文件变化，默认为不监控。
 
 内部处理如下：
+
 ```js
 if (args.watch) {
     compiler.watch(args.watch || 200, doneHandler);
+    //启动compiler.watch监听文件变化
   } else {
     compiler.run(doneHandler);
   }
 ```
 
 也用于监控编译的过程
+
 ```js
  if (args.watch) {
     webpackConfig.forEach(config => {
@@ -82,7 +91,6 @@ if (args.watch) {
     });
   }
 ```
-
 
 --public-path <path>
 
@@ -127,6 +135,7 @@ if (args.watch) {
 如果压缩代码，那么我们添加UglifyJsPlugin。
 
 --config [userConfigFile] 指定用户配置文件。默认为根目录下的 webpack.config.js 文件。这个配置文件不是必须的。处理方式如下：
+
 ```js
 if (typeof args.config === 'function') {
     webpackConfig = args.config(webpackConfig) || webpackConfig;
@@ -136,6 +145,7 @@ if (typeof args.config === 'function') {
 ```
 
 也就说，如果config参数是一个函数，那么直接调用这个函数，否则获取路径并调用这个路径引入的文件的默认导出函数，传入参数为webpackConfig，下面是内置的mergeCustomConfig内部逻辑：
+
 ```js
 export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   if (!existsSync(customConfigPath)) {
@@ -148,13 +158,14 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   throw new Error(`Return of ${customConfigPath} must be a function.`);
 }
 ```
-注意，也就说如果我们传入的是config为file，*那么这个config必须导出的是一个函数*！
+注意，也就说如果我们传入的是config为file，*那么这个config必须导出的是一个函数*！但是在[wcf](https://github.com/liangklfangl/wcf)中我们采用了webpack-merge来合并配置项，更加灵活多变
 
 --devtool <devtool> 生成 sourcemap 的方法，默认为空，这个参数和 webpack 的配置一致。
 
 --hash 使用 hash 模式的构建, 并生成映射表 map.json。
 
 内部的处理如下：
+
 ```js
   if (args.hash) {
     const pkg = require(join(args.cwd, 'package.json'));
@@ -195,6 +206,7 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
 
 （3）DefinePlugin
   表示允许你定义全局变量，可以用于在编译阶段和开发阶段进行不同的处理。用法如下:
+
 ```javascript
  new webpack.DefinePlugin({
           'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
@@ -318,6 +330,7 @@ export default function build(args, callback) {
 ```
 
 上面的代码是很容易看懂的，其实我们最重要的代码就是如下的内容：
+
 ```js
 function doneHandler(err, stats) {
     if (args.json) {
@@ -366,6 +379,7 @@ function doneHandler(err, stats) {
 因为我们调用compiler.watch方法，在webpack中，其会调用Watching对象的watch方法监听文件的变化，每次变化的时候我们只是重新生成我们的'build-bundle.json'文件表示本次编译的信息！而且在webpack的watch的回调函数，也就是doneHandler中每次都会传入Stats对象，如果你还不知道可以查看下面这个[文章](https://github.com/liangklfangl/webpack-compiler-and-compilation)
 
 ### 5.TypeScript默认配置项
+
 ```js
 export default function ts() {
   return {
@@ -398,11 +412,13 @@ export default function babel() {
 ```
 
 上面tmpdir的作用如下：
+
   The *os.tmpdir()* method returns a string specifying the operating system's default directory for temporary files.
 
 ### 7.Webpack默认配置项
 
 直接上源码部分，再分开分析下：
+
 ```js
 export default function getWebpackCommonConfig(args) {
   const pkgPath = join(args.cwd, 'package.json');
@@ -577,11 +593,13 @@ export default function getWebpackCommonConfig(args) {
 ```
 
 我们是如下调用的：
+
 ```js
   let webpackConfig = getWebpackCommonConfig(args);
 ```
 
 而我们的args表示从shell控制台传入的参数，这些参数会被原样传入到上面的getWebpackCommonConfig方法中。但是，我们依然要弄清楚下面的内容：
+
 ```js
  let theme = {};
   if (pkg.theme && typeof(pkg.theme) === 'string') {
@@ -632,8 +650,8 @@ less.modifyVars({
 为什么说getWebpackCommonConfig返回的是一个webpack的common配置信息，这些信息都是什么意思？为何说getBabelCommonConfig.js得到的是babel的基本配置，配置是什么意思？getTSCommonConfig得到的又是什么配置？这些内容不再一一赘述，读者可自行google.
 
 
-
 参考资料：
+
 [atoolo-build官方文档](http://ant-tool.github.io/atool-build.html)
 
 [webpack配置文档](https://github.com/webpack/docs/wiki/configuration#outputpublicpath)
