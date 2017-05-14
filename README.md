@@ -1,20 +1,24 @@
 ### 1.atool-build的简单说明
 
-说明：atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，所以我还是强烈建议更新到webpack2的。废话不多说，请看下面内容：
+说明：atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，同时很多配置项都已经失效了，以前出现的问题都已经解决了。所以我还是强烈建议更新到webpack2的。
+
+废话不多说，请看下面内容：
 
  atool-build简介:
 
  atool-build脚手架只是对webpack进行了简单的封装。
 
-首先,webpack/babel/TypeScript那些基本配置信息都有了默认信息，并内置了很多默认的`loader`来处理文件;然后,他是自己调用`compiler.run`方法开始编译的，并通过compiler.watch来监听文件的变化，生产[build-bundle.json](https://github.com/liangklfangl/commonchunkplugin-source-code)表示编译的信息；然后，里面通过一个hack来解决extract-webpack-text-plugin打印log的问题;Babel的缓存目录会使用操作系统默认的缓存目录来完成，使用os模块的tmpdir方法；其中devtool采用的是如下的方式加载:
+首先,webpack/babel/TypeScript那些基本配置信息都有了默认信息，并内置了很多默认的`loader`来处理文件;然后,他是自己调用`compiler.run`方法开始编译的，并通过compiler.watch来监听文件的变化，生产[build-bundle.json](https://github.com/liangklfangl/commonchunkplugin-source-code)表示编译的信息；
+
+然后，里面通过一个hack来解决extract-webpack-text-plugin打印log的问题;Babel的缓存目录会使用操作系统默认的缓存目录来完成，使用os模块的tmpdir方法；其中devtool采用的是如下的方式加载:
 
  ```js
  webpack --devtool source-map
  ```
 
-`.`如果在 package.json 中 browser 没有设置，则设置 child_process, cluster, dgram, dns, fs, module, net, readline, repl, tls 为 `empty`!
+(1)如果在 package.json 中 browser 没有设置，则设置 child_process, cluster, dgram, dns, fs, module, net, readline, repl, tls 为 `empty`!
 
-`.`对于自定义添加的 loader，plugin等依赖，需要在项目文件夹中npm install 这些依赖。但不需要再安装 webpack 依赖，因为可以通过 require('atool-build/lib/webpack') 得到；
+(2)对于自定义添加的 loader，plugin等依赖，需要在项目文件夹中npm install 这些依赖。但不需要再安装 webpack 依赖，因为可以通过 require('atool-build/lib/webpack') 得到；
 
 ### 2.atool-build官方配置项与内部处理
 
@@ -648,6 +652,153 @@ less.modifyVars({
 ### 9.webpack/TypeScript/Babel基本配置的含义
   
 为什么说getWebpackCommonConfig返回的是一个webpack的common配置信息，这些信息都是什么意思？为何说getBabelCommonConfig.js得到的是babel的基本配置，配置是什么意思？getTSCommonConfig得到的又是什么配置？这些内容不再一一赘述，读者可自行google.
+
+
+### 10.wcf vs atool-build
+
+最后打一个小广告说一下[wcf](https://github.com/liangklfangl/wcf)与atool-build的区别,如果你有兴趣，也欢迎star,issue,贡献代码:
+
+(1)wcf集成了三种打包模式
+
+上面已经说过了，我们的wcf集成了三种打包模式，而且功能是逐渐增强的。*webpack模式*只是打包一次，然后退出，和webpack自己的打包方式是一样的。*webpack watch模式*会自动监听文件是否发生变化，然后重新打包。*webpack-dev-server模式*天然支持了HMR，支持无刷新更新数据。具体你可以[阅读文档](https://github.com/liangklfangl/wcf)
+
+(2)很好的扩展性
+
+atool-build提供一个mergeCustomConfig函数来合并用户自定义的配置与默认的配置，并将用户配置作为参数传入函数进行修改，但是当要修改的配置项很多的时候就比较麻烦。wcf自己也集成了很多loader对文件进行处理，但是很容易进行拓展，只要你配置自己的扩展文件就可以了，内部操作都会自动完成。你可以通过两种方式来配置：
+
+cli模式：
+```js
+wcf --dev --devServer --config "Your custom webpack config file path"
+//此时会自动合并用户自定义的配置与默认配置，通过webpack-merge完成，而不用逐项修改
+```
+
+Nodejs模式：
+```js
+const build = require("webpackcc/lib/build");
+const program = {
+    onlyCf : true,
+    //不启动打包，只是获取最终配置信息
+    cwd : process.cwd(),
+    dev : true,
+    //开发模式，不启动如UglifyJs等
+    config :"Your custom webpack config file path"
+  };
+const finalConfig = build(program);
+//得到最终的配置，想干嘛干嘛
+```
+通过nodejs模式，你可以获取webpack配置项用于其他地方。
+
+下面给出一个完整的例子(假如下面给出的是我们*自定义的配置文件*)：
+```js
+module.exports = {
+  entry:{
+      'main': [
+        'webpack-hot-middleware/client?path=http://' + host + ':' + port + '/__webpack_hmr',
+        "bootstrap-webpack!./src/theme/bootstrap.config.js",
+        './src/client.js'
+      ]
+  },
+   output: {
+      path: assetsPath,
+      filename: '[name]-[hash].js',
+      chunkFilename: '[name]-[chunkhash].js',
+      publicPath: 'http://' + host + ':' + port + '/dist/'
+    },
+  plugins:[
+    new webpack.DefinePlugin({
+        __CLIENT__: true,
+        __SERVER__: false,
+        __DEVELOPMENT__: true,
+        __DEVTOOLS__: true 
+         // <-------- DISABLE redux-devtools HERE
+      }),
+     new webpack.IgnorePlugin(/webpack-stats\.json$/),
+     webpackIsomorphicToolsPlugin.development()
+  ],
+   module:{
+      rules:[
+        { test: /\.woff(\?v=\d+\.\d+\.\d+)?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff" },
+        {
+           test: webpackIsomorphicToolsPlugin.regular_expression('images'), 
+           use: {
+             loader: require.resolve("url-loader"),
+             options:{}
+           }
+         },
+           {
+            test: /\.jsx$/,
+            exclude :path.resolve("node_modules"),
+            use: [{
+              loader:require.resolve('babel-loader'),
+              options:updateCombinedBabelConfig()
+            }]
+          },
+            {
+            test: /\.js$/,
+            exclude :path.resolve("node_modules"),
+            use: [{
+              loader:require.resolve('babel-loader'),
+              options:updateCombinedBabelConfig()
+            }]
+          }]
+   }
+}
+```
+注意：我们的wcf没有内置的entry，所以你这里配置的entry将会作为合并后的最终webpack配置的entry项。对于output来说，用户自定义的配置将会覆盖默认的配置(其他的也一样，除了module,plugins等)。对于plugin来说，我们会进行合并，此时不仅包含用户自定义的plugin，同时也包含内置的plugin。对于loader来说，如果有两个相同的loader,那么用户自定义的loader也会原样覆盖默认的loader。这样就很容易进行扩展。只要用户*配置一个自定义配置文件的路径即可*！
+
+(3)dedupe
+
+atool-build并没有对我们的plugin和loader进行去重，这样可能导致同一个plugin被添加了两次，这就要求用户必须了解内置那些plugin，从而不去添加它。同时也会导致某一个js文件的loader也添加了两次，得到如下的内容:
+```js
+ [ { test: { /\.jsx$/ [lastIndex]: 0 },
+    exclude:
+     { [Function: exclude]
+       [length]: 1,
+       [name]: 'exclude',
+       [arguments]: null,
+       [caller]: null,
+       [prototype]: exclude { [constructor]: [Circular] } },
+    use: [ { loader: 'babel-loader', options: {} }, [length]: 1 ] },
+  { test: { /\.jsx$/ [lastIndex]: 0 },
+  //对于jsx的loader又添加了一次
+    exclude:
+     { [Function: exclude]
+       [length]: 1,
+       [name]: 'exclude',
+       [arguments]: null,
+       [caller]: null,
+       [prototype]: exclude { [constructor]: [Circular] } },
+    use: [ { loader: 'after', options: {} }, [length]: 1 ] },
+  [length]: 2 ]
+```
+
+这个问题你可以查看我给webpack-merge提出的[issue](https://github.com/survivejs/webpack-merge/issues/75)。但是这些工作wcf已经做了，所以当你有两个相同的插件，或者两个相同的loader的情况下，都只会留下一个，并且用户自定义的优先级要高于默认配置的优先级。
+
+(4)打包前进行钩子设置
+
+如果在打包前,或者获取到最终配置之前，你要对最终配置做一个处理，比如删除某个plugin/loader，那么我们提供了一个钩子函数：
+```js
+const program = {
+    onlyCf : true,
+    //此时不打包，只是为了获取最终配置用于nodejs
+    cwd : process.cwd(),
+    dev : true,
+    //不启动压缩
+    //下面这个hook用于去掉commonchunkplugin
+    hook:function(webpackConfig){
+         const commonchunkpluginIndex = webpackConfig.plugins.findIndex(plugin => {
+           return plugin.constructor.name == "CommonsChunkPlugin"
+         });
+         webpackConfig.plugins.splice(commonchunkpluginIndex, 1);
+         return webpackConfig;
+    }
+  };
+```
+
+(5)其他功能
+
+请[参考这里](https://github.com/liangklfangl/wcf/blob/master/changelog.md)
+
 
 
 参考资料：
