@@ -1,12 +1,10 @@
-### 1.atool-build的简单说明
+### 1.说在前面的话
+atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，同时很多配置项都已经失效了，以前出现的问题都已经解决了。所以我还是强烈建议更新到webpack2的。
 
-说明：atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，同时很多配置项都已经失效了，以前出现的问题都已经解决了。所以我还是强烈建议更新到webpack2的。
-
+### 2.atool-build的简单说明
 废话不多说，请看下面内容：
 
- atool-build简介:
-
- atool-build脚手架只是对webpack进行了简单的封装。
+atool-build脚手架只是对webpack进行了简单的封装。
 
 首先,webpack/babel/TypeScript那些基本配置信息都有了默认信息，并内置了很多默认的`loader`来处理文件;然后,他是自己调用`compiler.run`方法开始编译的，并通过compiler.watch来监听文件的变化，生产[build-bundle.json](https://github.com/liangklfangl/commonchunkplugin-source-code)表示编译的信息；
 
@@ -20,13 +18,13 @@
 
 (2)对于自定义添加的 loader，plugin等依赖，需要在项目文件夹中npm install 这些依赖。但不需要再安装 webpack 依赖，因为可以通过 require('atool-build/lib/webpack') 得到；
 
-### 2.atool-build官方配置项与内部处理
+### 3.atool-build官方配置项与内部处理
 
 下面是atool-build给出的那些可以允许配置信息:
 
---verbose:是否在shell中传入verbose参数(是否输入过程日志)
-
+(1): --verbose:是否在shell中传入verbose参数(表示是否输出过程日志)
 ```js 
+//如果没有指定verbose
 if (!args.verbose) {
     compiler.plugin('done', (stats) => {
       stats.stats.forEach((stat) => {
@@ -37,11 +35,9 @@ if (!args.verbose) {
     });
   }
 ```
-
 如果没有传入verbose，那么表示不允许输出日志。至于为什么是移除'extract-text-webpack-plugin'可以参见这个[hack](https://github.com/webpack/extract-text-webpack-plugin/issues/35)
 
---json <filename>是否生成bundle.json文件
-
+(2):--json <filename>是否生成bundle.json文件
 ```js
 if (args.json) {
       const filename = typeof args.json === 'boolean' ? 'build-bundle.json' : args.json;
@@ -50,22 +46,18 @@ if (args.json) {
       console.log(`Generate Json File: ${jsonPath}`);
     }
 ```
-
 表示是否在shell中配置了json参数，在doneHandle，也就是说每次修改都会调用这个方法，然后写一个默认为build-bundle.json文件：
 
--o, --output-path <path> 指定构建后的输出路径。
-
+(3)-o, --output-path <path> 指定构建后的输出路径。
 处理如下：
 ```js
+//对应于webpack的output.path选项
   if (args.outputPath) {
     webpackConfig.output.path = args.outputPath;
   }
 ```
 
--w, --watch [delpay] 是否监控文件变化，默认为不监控。
-
-内部处理如下：
-
+(4)-w, --watch [delpay] 是否监控文件变化，默认为不监控。内部处理如下：
 ```js
 if (args.watch) {
     compiler.watch(args.watch || 200, doneHandler);
@@ -74,9 +66,7 @@ if (args.watch) {
     compiler.run(doneHandler);
   }
 ```
-
 也用于监控编译的过程
-
 ```js
  if (args.watch) {
     webpackConfig.forEach(config => {
@@ -96,17 +86,17 @@ if (args.watch) {
   }
 ```
 
---public-path <path>
+(5)--public-path <path>
 
 具体可以查看[该文档](https://github.com/webpack/docs/wiki/configuration#outputpublicpath)，内部处理如下:
-
 ```js
+//对应于webpack的虚拟路径
   if (args.publicPath) {
     webpackConfig.output.publicPath = args.publicPath;
   }
 ```
 
---no-compress 不压缩代码。
+(6)--no-compress 不压缩代码。
 
 ```js
  if (args.compress) {//配置为--no-compress表示不压缩
@@ -135,11 +125,9 @@ if (args.watch) {
     }
   }
 ```
-
 如果压缩代码，那么我们添加UglifyJsPlugin。
 
---config [userConfigFile] 指定用户配置文件。默认为根目录下的 webpack.config.js 文件。这个配置文件不是必须的。处理方式如下：
-
+(7)--config [userConfigFile] 指定用户配置文件。默认为根目录下的 webpack.config.js文件。这个配置文件不是必须的。处理方式如下：
 ```js
 if (typeof args.config === 'function') {
     webpackConfig = args.config(webpackConfig) || webpackConfig;
@@ -147,9 +135,7 @@ if (typeof args.config === 'function') {
     webpackConfig = mergeCustomConfig(webpackConfig, resolve(args.cwd, args.config || 'webpack.config.js'));
   }
 ```
-
 也就说，如果config参数是一个函数，那么直接调用这个函数，否则获取路径并调用这个路径引入的文件的默认导出函数，传入参数为webpackConfig，下面是内置的mergeCustomConfig内部逻辑：
-
 ```js
 export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   if (!existsSync(customConfigPath)) {
@@ -164,13 +150,11 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
 ```
 注意，也就说如果我们传入的是config为file，*那么这个config必须导出的是一个函数*！但是在[wcf](https://github.com/liangklfangl/wcf)中我们采用了webpack-merge来合并配置项，更加灵活多变
 
---devtool <devtool> 生成 sourcemap 的方法，默认为空，这个参数和 webpack 的配置一致。
+(8)--devtool <devtool> 生成 sourcemap 的方法，默认为空，这个参数和 webpack 的配置一致。表示sourceMap的等级。
 
---hash 使用 hash 模式的构建, 并生成映射表 map.json。
-
-内部的处理如下：
-
+(9)--hash 使用hash模式的构建, 并生成映射表map.json。内部的处理如下：
 ```js
+//如果指定了hash，那么我们的生成的文件名称为[name]-[chunkhash]这种类型
   if (args.hash) {
     const pkg = require(join(args.cwd, 'package.json'));
     webpackConfig.output.filename = webpackConfig.output.chunkFilename = '[name]-[chunkhash].js';
@@ -182,10 +166,9 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
     ];
   }
 ```
-
 也就是说如果指定了hash，那么我们必须修改输出的文件名，即webpackConfig.output.filename 和webpackConfig.output.chunkFilename并添加hash。而且这里使用的是chunkhash，同时这里使用了map-json-webpack-plugin这个插件生成map.json映射文件。
 
-### 3.atool-build中内置的那些插件
+### 4.atool-build中内置的那些插件
 
 (1)ProgressPlugin学习
 ```js
@@ -201,16 +184,14 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   })
 
 ```
-
 该插件表示编译的进度。插件详见官方网站[阅读](https://webpack.github.io/docs/list-of-plugins.html)
 
 (2)NoErrorsPlugin
 
-  表示如果编译的时候有错误，那么我们跳过emit阶段，因此包含错误信息的资源都不会经过emit阶段也就是没有文件产生。这时候所有资源的emitted都是false。如果你使用CLI，那么当你使用这个插件的时候不会退出并产生一个error code，如果你想要CLI退出，那么使用bail选项。
+表示如果编译的时候有错误，那么我们跳过emit阶段，因此包含错误信息的资源都不会经过emit阶段也就是没有文件产生。这时候所有资源的emitted都是false。如果你使用CLI，那么当你使用这个插件的时候不会退出并产生一个error code，如果你想要CLI退出，那么使用bail选项。
 
 （3）DefinePlugin
   表示允许你定义全局变量，可以用于在编译阶段和开发阶段进行不同的处理。用法如下:
-
 ```javascript
  new webpack.DefinePlugin({
           'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
@@ -218,10 +199,9 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
 ```
 
 （4）DedupePlugin
-   查找相等或者相似的文件并从输出去剔除。在watch模式下不要使用，要在production下使用
-
-  ```js
-    export default function mergeCustomConfig(webpackConfig, customConfigPath) {
+   查找相等或者相似的文件并从输出去剔除。在watch模式下不要使用，要在production下使用。
+```js
+export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   if (!existsSync(customConfigPath)) {
     return webpackConfig;
   }
@@ -232,10 +212,9 @@ export default function mergeCustomConfig(webpackConfig, customConfigPath) {
   }
   throw new Error(`Return of ${customConfigPath} must be a function.`);
 }
-  ```
+```
 
-### 4.atool-build源码分析
-
+### 5.atool-build源码分析
 ```js
 export default function build(args, callback) {
   // Get config.
@@ -332,9 +311,7 @@ export default function build(args, callback) {
   }
 }
 ```
-
 上面的代码是很容易看懂的，其实我们最重要的代码就是如下的内容：
-
 ```js
 function doneHandler(err, stats) {
     if (args.json) {
@@ -382,8 +359,7 @@ function doneHandler(err, stats) {
 
 因为我们调用compiler.watch方法，在webpack中，其会调用Watching对象的watch方法监听文件的变化，每次变化的时候我们只是重新生成我们的'build-bundle.json'文件表示本次编译的信息！而且在webpack的watch的回调函数，也就是doneHandler中每次都会传入Stats对象，如果你还不知道可以查看下面这个[文章](https://github.com/liangklfangl/webpack-compiler-and-compilation)
 
-### 5.TypeScript默认配置项
-
+### 6.TypeScript默认配置项
 ```js
 export default function ts() {
   return {
@@ -396,8 +372,7 @@ export default function ts() {
 }
 ```
 
-### 6.Babel配置项
-
+### 7.Babel配置项
 ```js
 export default function babel() {
   return {
@@ -414,15 +389,12 @@ export default function babel() {
   };
 }
 ```
-
 上面tmpdir的作用如下：
 
   The *os.tmpdir()* method returns a string specifying the operating system's default directory for temporary files.
 
-### 7.Webpack默认配置项
-
+### 8.Webpack默认配置项
 直接上源码部分，再分开分析下：
-
 ```js
 export default function getWebpackCommonConfig(args) {
   const pkgPath = join(args.cwd, 'package.json');
@@ -595,15 +567,11 @@ export default function getWebpackCommonConfig(args) {
   };
 }
 ```
-
 我们是如下调用的：
-
 ```js
   let webpackConfig = getWebpackCommonConfig(args);
 ```
-
 而我们的args表示从shell控制台传入的参数，这些参数会被原样传入到上面的getWebpackCommonConfig方法中。但是，我们依然要弄清楚下面的内容：
-
 ```js
  let theme = {};
   if (pkg.theme && typeof(pkg.theme) === 'string') {
@@ -618,7 +586,6 @@ export default function getWebpackCommonConfig(args) {
     theme = pkg.theme;
   }
 ```
-
 我们可以在package.json中配置theme选项，如果配置为对象，那么就是theme内容，否则如果是文件那么我们require进来，然后调用默认的方法！这也就是告诉我们，我们配置的这个文件名导出的内容`必须是一个函数`！那么这个theme有什么用呢？其实这是less为我们提供的覆盖less文件默认配置的变量的方法！我们在package.json中配置的theme会被传入到以下的插件中:
 ExtractTextPlugin
 
@@ -634,9 +601,7 @@ ExtractTextPlugin
           ),
         }
 ```
-
 首先：一种文件可以使用多个loader来完成；然后：我们可以使用?为不同的loader添加参数并且注意哪些参数是变量哪些参数是字符串！比如对于less-loader来说，我们使用了modifyVars来覆盖原来的样式,因为在loader里面会通过query读取查询字符串，然后做相应的覆盖（因为less里面使用了变量）。
-
 ```less
 less.modifyVars({
   '@buttonFace': '#5B83AD',
@@ -645,17 +610,10 @@ less.modifyVars({
 ```
 详见链接:[modifyVars](http://lesscss.org/usage/#using-less-in-the-browser-modify-variables)
 
-### 8.compiler和compilation
-  学习那些插件的写法，深入理解compiler和compliation不同的生命周期，你可以阅读[这篇文章](https://github.com/liangklfangl/webpack-compiler-and-compilation
-)
-
 ### 9.webpack/TypeScript/Babel基本配置的含义
-  
 为什么说getWebpackCommonConfig返回的是一个webpack的common配置信息，这些信息都是什么意思？为何说getBabelCommonConfig.js得到的是babel的基本配置，配置是什么意思？getTSCommonConfig得到的又是什么配置？这些内容不再一一赘述，读者可自行google.
 
-
 ### 10.wcf vs atool-build
-
 最后打一个小广告说一下[wcf](https://github.com/liangklfangl/wcf)与atool-build的区别,如果你有兴趣，也欢迎star,issue,贡献代码:
 
 (1)wcf集成了三种打包模式
@@ -671,7 +629,6 @@ cli模式：
 wcf --dev --devServer --config "Your custom webpack config file path"
 //此时会自动合并用户自定义的配置与默认配置，通过webpack-merge完成，而不用逐项修改
 ```
-
 Nodejs模式：
 ```js
 const build = require("webpackcc/lib/build");
@@ -798,6 +755,46 @@ const program = {
 (5)其他功能
 
 请[参考这里](https://github.com/liangklfangl/wcf/blob/master/changelog.md)
+
+### 11.关于webpack+babel打包的更多文章
+#### 11.1 webpack相关
+
+[webpack-dev-server原理分析](https://github.com/liangklfangl/webpack-dev-server)
+
+[webpack热加载HMR深入学习](https://github.com/liangklfangl/webpack-hmr)
+
+[集成webpack,webpack-dev-server的打包工具](https://github.com/liangklfangl/wcf)
+
+[prepack与webpack对比](https://github.com/liangklfangl/prepack-vs-webpack)
+
+[webpack插件书写你需要了解的知识点](https://github.com/liangklfangl/webpack-common-sense)
+
+[CommonsChunkPlugin深入分析](https://github.com/liangklfangl/commonchunkplugin-source-code)
+
+[CommonsChunkPlugin配置项深入分析](https://github.com/liangklfangl/commonsChunkPlugin_Config)
+
+[webpack.DllPlugin提升打包性能](https://github.com/liangklfangl/webpackDll)
+
+[webpack实现code splitting方式分析](https://github.com/liangklfangl/webpack-code-splitting)
+
+[webpack中的externals vs libraryTarget vs library](https://github.com/liangklfangl/webpack-external-library)
+
+[webpack的compiler与compilation对象](https://github.com/liangklfangl/webpack-compiler-and-compilation)
+
+[webpack-dev-middleware原理分析](https://github.com/liangklfang/webpack-dev-middleware)
+
+#### 11.2 Babel相关
+
+[Babel编译class继承与源码打包结果分析](https://github.com/liangklfangl/babel-compiler-extends)
+
+[使用babel操作AST来完成某种特效](https://github.com/liangklfangl/astexample)
+
+[babylon你了解多少](https://github.com/liangklfangl/babylon)
+
+
+更加深入的问题，您可以继续阅读[react+webpack+babel全家桶完整实例](https://github.com/liangklfangl/react-universal-bucket)
+
+
 
 
 
