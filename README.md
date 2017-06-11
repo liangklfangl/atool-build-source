@@ -1,5 +1,5 @@
 ### 1.说在前面的话
-atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，同时很多配置项都已经失效了，以前出现的问题都已经解决了。所以我还是强烈建议更新到webpack2的。对于该打包工具，我将它用于[React全家桶完整实例详解](https://github.com/liangklfangl/react-universal-bucket)的开发中，并与Babel插件,React常用组件结合，实现了服务端渲染与同构，代理于与反代理服务器，自定义bootstrap,高阶组件与逻辑复用一系列的功能。
+atool-build本身是基于webpack1的，如果你使用的是webpack2,可以试试[wcf](https://github.com/liangklfangl/wcf)。这是在atool-build基础上开发的，集成了webpack-dev-server(启动了webpack-dev-server打包), webpack watch(webpack自身的watch模式，监听文件变化重新打包), webpack(打包一次然后退出)三种打包方式。因为webpack2更新后我们下面描述的很多plugin都已经移除而内置了，同时很多配置项都已经失效了，以前出现的问题都已经解决了。所以我还是强烈建议更新到webpack2的。对于该打包工具，我将它用于[React全家桶完整实例详解](https://github.com/liangklfangl/react-universal-bucket)的开发中，并与Babel插件,React常用组件结合，实现了服务端渲染与同构，代理于与反代理服务器，自定义bootstrap,高阶组件与逻辑复用一系列的功能
 
 ### 2.atool-build的简单说明
 废话不多说，请看下面内容：
