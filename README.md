@@ -404,7 +404,7 @@ export default function getWebpackCommonConfig(args) {
   const jsFileName = args.hash ? '[name]-[chunkhash].js' : '[name].js';
   const cssFileName = args.hash ? '[name]-[chunkhash].css' : '[name].css';
   const commonName = args.hash ? 'common-[chunkhash].js' : 'common.js';
-  //如果传入hash，那么输出文件名要修改
+  //如果传入hash，那么输出文件名要修改。
   const babelQuery = getBabelCommonConfig();
   const tsQuery = getTSCommonConfig();
   //获取TypeScript配置
