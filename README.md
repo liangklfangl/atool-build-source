@@ -393,6 +393,8 @@ export default function babel() {
 
   The *os.tmpdir()* method returns a string specifying the operating system's default directory for temporary files.
 
+关于Babel的其他内容，你可以查看[React全家桶完整实例](https://github.com/liangklfangl/react-universal-bucket)，其详述了如Babel操作AST抽象语法树等一系列高级内容。
+
 ### 8.Webpack默认配置项
 直接上源码部分，再分开分析下：
 ```js
