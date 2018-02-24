@@ -421,7 +421,9 @@ export default function getWebpackCommonConfig(args) {
   } else if (pkg.theme && typeof(pkg.theme) === 'object') {
     theme = pkg.theme;
   }
-  const emptyBuildins = [
+  //为什么引入下面的部分可以参考官方https://webpack.js.org/configuration/node/
+  //目的是为了解决如果是打包为浏览器的bundle的时候却有nodejs的核心模块，导致打包出错的问题
+  const emptyBuildins = [
     'child_process',
     'cluster',
     'dgram',
